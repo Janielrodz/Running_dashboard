@@ -1,0 +1,7 @@
+keys/
+.claude/
+backend/venv/
+frontend/node_modules/
+__pycache__
+garmin_activities.db
+deploy.sh
