@@ -10,7 +10,13 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
-DB_PATH = Path(os.getenv("DB_PATH", "~/HealthData/DBs/garmin_activities.db")).expanduser()
+BASE_DIR = Path(os.getenv("GARMIN_DB_DIR", "~/HealthData/DBs")).expanduser()
+ACTIVITIES_DB = BASE_DIR / "garmin_activities.db"
+MONITORING_DB = BASE_DIR / "garmin_monitoring.db"
+SUMMARY_DB = BASE_DIR / "garmin_summary.db"
+GARMIN_DB = BASE_DIR / "garmin.db"
+SUMMARY2_DB = BASE_DIR / "summary.db"
+
 
 app = FastAPI(title="Running Dashboard")
 
@@ -22,11 +28,13 @@ app.add_middleware(
 )
 
 
-def get_db():
-    uri = f"file:{DB_PATH}?mode=ro"
+def get_db(path: Path):
+    uri = f"file:{path}?mode=ro"
     conn = sqlite3.connect(uri, uri=True, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
+    
+    
 
 
 def meters_to_miles(m) -> Optional[float]:
@@ -88,7 +96,7 @@ SUBTYPE_MAP = {
 
 @app.get("/api/runs")
 def list_runs(type: Optional[str] = None):
-    conn = get_db()
+    conn = get_db(path=ACTIVITIES_DB)
     try:
         query = """
             SELECT activity_id, name, sub_sport, start_time, distance,
@@ -126,7 +134,7 @@ def list_runs(type: Optional[str] = None):
 
 @app.get("/api/runs/{activity_id}")
 def get_run(activity_id: str):
-    conn = get_db()
+    conn = get_db(path=ACTIVITIES_DB)
     try:
         row = conn.execute(
             """
@@ -211,7 +219,7 @@ def get_run(activity_id: str):
 
 @app.get("/api/stats/summary")
 def stats_summary():
-    conn = get_db()
+    conn = get_db(path=ACTIVITIES_DB)
     try:
         agg = conn.execute(
             """
