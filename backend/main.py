@@ -220,6 +220,7 @@ def get_run(activity_id: str):
 @app.get("/api/stats/summary")
 def stats_summary():
     conn = get_db(path=ACTIVITIES_DB)
+    conn_summary = get_db(path=SUMMARY_DB)
     try:
         agg = conn.execute(
             """
@@ -241,8 +242,22 @@ def stats_summary():
             """
             SELECT vo2_max FROM running_activities_view
             WHERE vo2_max IS NOT NULL
-            ORDER BY start_time DESC LIMIT 1
+            ORDER BY start_time DESC 
+            LIMIT 1
             """
+        ).fetchone()
+
+        weekly_calories = conn_summary.execute(
+            """
+            SELECT first_day,
+            activities,
+            activities_calories,
+            activities_distance
+            FROM weeks_summary
+            WHERE activities_calories IS NOT NULL
+            ORDER BY first_day DESC
+            LIMIT 1
+           """
         ).fetchone()
 
 
@@ -270,10 +285,12 @@ def stats_summary():
             "avg_pace": pace_from_mps(agg["mean_speed"]),
             "best_pace": pace_from_mps(agg["best_speed"]),
             "current_vo2_max": vo2_row["vo2_max"] if vo2_row else None,
+            "calories_7d": weekly_calories["activities_calories"] if weekly_calories else None,
             "pace_history": pace_history,
         }
     finally:
         conn.close()
+        conn_summary.close()
 
 
 # Mount static files last so API routes take precedence
