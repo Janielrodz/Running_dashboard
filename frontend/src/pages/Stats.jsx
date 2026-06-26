@@ -55,10 +55,40 @@ const CustomTooltip = ({ active, payload, label }) => {
   )
 }
 
+function WeeklyStatCard({ label, value, sub, date, onPrevious, onNext, previousDisabled, nextDisabled }) {
+  return (
+    <div style={{ background: '#1a1a1a', borderRadius: 16, padding: '22px 24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#555', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          {label}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onPrevious} disabled={previousDisabled}>←</button>
+          <button onClick={onNext} disabled={nextDisabled}>→</button>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1 }}>
+        {value ?? '—'}
+      </div>
+
+      {sub && <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{sub}</div>}
+
+      {date && (
+        <div style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
+          Week of {date.slice(0, 10)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Stats() {
   const [data, setData] = useState(null)
   const [range, setRange] = useState(90)
   const [loading, setLoading] = useState(true)
+  const [calorieWeekIndex, setCalorieWeekIndex] = useState(0)
 
   useEffect(() => {
     fetch('/api/stats/summary')
@@ -81,6 +111,21 @@ export default function Stats() {
   const minPace = paceVals.length ? Math.min(...paceVals) : 0
   const maxPace = paceVals.length ? Math.max(...paceVals) : 600
 
+  const weeklyCalories = data?.weekly_calories || []
+  const selectedCaloriesWeek = weeklyCalories[calorieWeekIndex]
+
+  const previousCaloriesWeek = () => {
+    if (calorieWeekIndex < weeklyCalories.length - 1) {
+      setCalorieWeekIndex(calorieWeekIndex + 1)
+    }
+  }
+
+  const nextCaloriesWeek = () => {
+    if (calorieWeekIndex > 0) {
+      setCalorieWeekIndex(calorieWeekIndex - 1)
+    }
+  }
+
   if (loading) return <div style={{ color: '#555', padding: 40 }}>Loading…</div>
   if (!data) return <div style={{ color: '#555', padding: 40 }}>Failed to load stats.</div>
 
@@ -95,11 +140,20 @@ export default function Stats() {
         <StatCard label="Total Miles" value={data.total_miles} sub="miles" />
       </div>
 
-      <div style={{padding: '24px 0px'}}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <StatCard label="Activity calories in the last 7d" value={data.calories_7d} />
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 28 }}>
+        <WeeklyStatCard
+          label="Weekly activity calories"
+          value={selectedCaloriesWeek?.activities_calories}
+          sub="cal"
+          date={selectedCaloriesWeek?.first_day}
+          onPrevious={previousCaloriesWeek}
+          onNext={nextCaloriesWeek}
+          previousDisabled={calorieWeekIndex >= weeklyCalories.length - 1}
+          nextDisabled={calorieWeekIndex === 0}
+        />
+        <StatCard label="Zone 2 time in the last 7d (Coming soon)" value={data.total_miles} />
       </div>
+
 
       <div style={{ background: '#1a1a1a', borderRadius: 16, padding: '24px 26px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>

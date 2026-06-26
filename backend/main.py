@@ -250,15 +250,13 @@ def stats_summary():
         weekly_calories = conn_summary.execute(
             """
             SELECT first_day,
-            activities,
-            activities_calories,
-            activities_distance
+            activities_calories
             FROM weeks_summary
             WHERE activities_calories IS NOT NULL
+            AND activities_calories != ''
             ORDER BY first_day DESC
-            LIMIT 1
            """
-        ).fetchone()
+        ).fetchall()
 
 
         history = conn.execute(
@@ -285,7 +283,13 @@ def stats_summary():
             "avg_pace": pace_from_mps(agg["mean_speed"]),
             "best_pace": pace_from_mps(agg["best_speed"]),
             "current_vo2_max": vo2_row["vo2_max"] if vo2_row else None,
-            "calories_7d": weekly_calories["activities_calories"] if weekly_calories else None,
+            "weekly_calories": [
+                {
+                    "first_day": row["first_day"],
+                    "activities_calories": row["activities_calories"]
+                }
+                for row in weekly_calories
+            ],
             "pace_history": pace_history,
         }
     finally:
