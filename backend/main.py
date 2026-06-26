@@ -87,6 +87,12 @@ def seconds_to_pace(total: int) -> str:
     return f"{m}:{s:02d}"
 
 
+def seconds_to_hours_min(seconds):
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    return f"{hours}h {minutes}m"
+
+
 SUBTYPE_MAP = {
     "outdoor": "generic",
     "track": "track",
@@ -258,6 +264,36 @@ def stats_summary():
            """
         ).fetchall()
 
+        z2_weekly = conn.execute(
+            """
+            SELECT date(start_time, 'weekday 0', '-6 days') as week_start,
+            heart_rate_zone_two_time
+            FROM running_activities_view
+            WHERE heart_rate_zone_two_time IS NOT NULL
+            ORDER BY start_time DESC
+            """
+        ).fetchall()
+
+        z2_by_week = {}
+        for row in z2_weekly:
+            week = row["week_start"]
+            seconds = time_str_to_seconds(row["heart_rate_zone_two_time"])
+            if week in z2_by_week:
+                z2_by_week[week] += seconds
+            else:
+                z2_by_week[week] = seconds
+
+        z2_weekly_list = [
+        {
+            "week_start": week,
+            "z2_time": seconds_to_hours_min(seconds)
+        }
+        for week, seconds in z2_by_week.items()
+        ]
+
+        #seconds_in_z2 = sum(time_str_to_seconds(s["heart_rate_zone_two_time"]) for s in z2_weekly)
+        
+
 
         history = conn.execute(
             """
@@ -290,6 +326,7 @@ def stats_summary():
                 }
                 for row in weekly_calories
             ],
+            "z2_weekly": z2_weekly_list,
             "pace_history": pace_history,
         }
     finally:

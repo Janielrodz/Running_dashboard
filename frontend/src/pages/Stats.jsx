@@ -89,6 +89,7 @@ export default function Stats() {
   const [range, setRange] = useState(90)
   const [loading, setLoading] = useState(true)
   const [calorieWeekIndex, setCalorieWeekIndex] = useState(0)
+  const [z2WeekIndex, setZ2WeekIndex] = useState(0)
 
   useEffect(() => {
     fetch('/api/stats/summary')
@@ -114,6 +115,9 @@ export default function Stats() {
   const weeklyCalories = data?.weekly_calories || []
   const selectedCaloriesWeek = weeklyCalories[calorieWeekIndex]
 
+  const z2Weekly = data?.z2_weekly || []
+  const selectedZ2Week = z2Weekly[z2WeekIndex]
+
   const previousCaloriesWeek = () => {
     if (calorieWeekIndex < weeklyCalories.length - 1) {
       setCalorieWeekIndex(calorieWeekIndex + 1)
@@ -125,6 +129,13 @@ export default function Stats() {
       setCalorieWeekIndex(calorieWeekIndex - 1)
     }
   }
+
+  const previousZ2Week = () => {
+    if (z2WeekIndex < z2Weekly.length - 1) setZ2WeekIndex(z2WeekIndex + 1)
+}
+  const nextZ2Week = () => {
+    if (z2WeekIndex > 0) setZ2WeekIndex(z2WeekIndex - 1)
+}
 
   if (loading) return <div style={{ color: '#555', padding: 40 }}>Loading…</div>
   if (!data) return <div style={{ color: '#555', padding: 40 }}>Failed to load stats.</div>
@@ -151,7 +162,18 @@ export default function Stats() {
           previousDisabled={calorieWeekIndex >= weeklyCalories.length - 1}
           nextDisabled={calorieWeekIndex === 0}
         />
-        <StatCard label="Zone 2 time in the last 7d (Coming soon)" value={data.total_miles} />
+
+        <WeeklyStatCard
+          label="Z2 weekly"
+          value={selectedZ2Week?.z2_time}
+          sub="time"
+          date={selectedZ2Week?.week_start}
+          onPrevious={previousZ2Week}
+          onNext={nextZ2Week}
+          previousDisabled={z2WeekIndex >= z2Weekly.length - 1}
+          nextDisabled={z2WeekIndex === 0}
+      />
+        
       </div>
 
 
