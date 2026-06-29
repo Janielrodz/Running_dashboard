@@ -334,6 +334,48 @@ def stats_summary():
         conn_summary.close()
 
 
+@app.get("/api/stats/volume")
+def stats_volume():
+    conn = get_db(path=ACTIVITIES_DB)
+    try:
+        rows = conn.execute(
+            """
+            SELECT date(start_time, 'weekday 0', '-6 days') as week_start,
+                   strftime('%Y-%m', start_time) as month,
+                   distance, elapsed_time
+            FROM running_activities_view
+            WHERE start_time IS NOT NULL
+            ORDER BY start_time ASC
+            """
+        ).fetchall()
+
+        weekly: dict = {}
+        monthly: dict = {}
+        for r in rows:
+            w, mo = r["week_start"], r["month"]
+            dist = r["distance"] or 0.0
+            secs = time_str_to_seconds(r["elapsed_time"])
+            weekly.setdefault(w, {"miles": 0.0, "time_seconds": 0})
+            weekly[w]["miles"] += dist
+            weekly[w]["time_seconds"] += secs
+            monthly.setdefault(mo, {"miles": 0.0, "time_seconds": 0})
+            monthly[mo]["miles"] += dist
+            monthly[mo]["time_seconds"] += secs
+
+        return {
+            "weekly": [
+                {"period": k, "miles": round(v["miles"], 1), "time_seconds": v["time_seconds"]}
+                for k, v in weekly.items()
+            ],
+            "monthly": [
+                {"period": k, "miles": round(v["miles"], 1), "time_seconds": v["time_seconds"]}
+                for k, v in monthly.items()
+            ],
+        }
+    finally:
+        conn.close()
+
+
 # Mount static files last so API routes take precedence
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
